@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Banco de Ideias</title>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+    }
+
+    body {
+        background: #f4f6f9;
+        padding: 30px;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: auto;
+    }
+
+    h1 {
+        color: #1f2937;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        background: white;
+        padding: 20px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    textarea {
+        width: 100%;
+        min-height: 120px;
+        padding: 10px;
+        resize: vertical;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 8px;
+        border: 1px solid #ccc;
+    }
+
+    .buttons {
+        margin-top: 15px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        color: white;
+        font-weight: bold;
+    }
+
+    .salvar {
+        background: #16a34a;
+    }
+
+    .navegador {
+        background: #2563eb;
+    }
+
+    .exportar {
+        background: #9333ea;
+    }
+
+    .importar {
+        background: #ea580c;
+    }
+
+    .excluir {
+        background: #dc2626;
+    }
+
+    .pesquisa {
+        margin-bottom: 20px;
+    }
+
+    .ideia {
+        background: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.1);
+    }
+
+    .ideia-data {
+        font-size: 12px;
+        color: gray;
+        margin-bottom: 8px;
+    }
+
+    .tags {
+        margin-top: 10px;
+        color: #2563eb;
+        font-weight: bold;
+    }
+
+    .contador {
+        margin-bottom: 15px;
+        color: #555;
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>💡 Banco de Ideias</h1>
+
+    <div class="card">
+
+        <textarea id="textoIdeia"
+            placeholder="Digite sua ideia aqui..."></textarea>
+
+        <input type="text"
+               id="tags"
+               placeholder="Tags (ex: negócio, app, IA, marketing)">
+
+        <div class="buttons">
+            <button class="salvar" onclick="salvarIdeia()">
+                Salvar Ideia
+            </button>
+
+            <button class="navegador" onclick="abrirPesquisa()">
+                Abrir Bing
+            </button>
+
+            <button class="exportar" onclick="exportarDados()">
+                Exportar Backup
+            </button>
+
+            <button class="importar" onclick="document.getElementById('arquivo').click()">
+                Importar Backup
+            </button>
+        </div>
+
+        <input type="file"
+               id="arquivo"
+               hidden
+               onchange="importarDados(event)">
+    </div>
+
+    <div class="card pesquisa">
+        <input type="text"
+               id="busca"
+               placeholder="Pesquisar ideias..."
+               onkeyup="renderizar()">
+    </div>
+
+    <div class="contador" id="contador"></div>
+
+    <div id="listaIdeias"></div>
+
+</div>
+
+<script>
+
+let ideias = JSON.parse(localStorage.getItem("bancoIdeias")) || [];
+
+function salvarLocal() {
+    localStorage.setItem(
+        "bancoIdeias",
+        JSON.stringify(ideias)
+    );
+}
+
+function salvarIdeia() {
+
+    const texto = document.getElementById("textoIdeia").value.trim();
+    const tags = document.getElementById("tags").value.trim();
+
+    if (!texto) {
+        alert("Digite uma ideia.");
+        return;
+    }
+
+    ideias.unshift({
+        id: Date.now(),
+        texto,
+        tags,
+        data: new Date().toLocaleString("pt-BR")
+    });
+
+    salvarLocal();
+
+    document.getElementById("textoIdeia").value = "";
+    document.getElementById("tags").value = "";
+
+    renderizar();
+}
+
+function excluirIdeia(id) {
+
+    if (!confirm("Deseja excluir esta ideia?"))
+        return;
+
+    ideias = ideias.filter(i => i.id !== id);
+
+    salvarLocal();
+    renderizar();
+}
+
+function renderizar() {
+
+    const busca = document
+        .getElementById("busca")
+        .value
+        .toLowerCase();
+
+    const lista = document.getElementById("listaIdeias");
+
+    let filtradas = ideias.filter(i =>
+        i.texto.toLowerCase().includes(busca) ||
+        i.tags.toLowerCase().includes(busca)
+    );
+
+    document.getElementById("contador").innerHTML =
+        `Total de ideias: <strong>${filtradas.length}</strong>`;
+
+    lista.innerHTML = "";
+
+    filtradas.forEach(i => {
+
+        lista.innerHTML += `
+            <div class="ideia">
+
+                <div class="ideia-data">
+                    ${i.data}
+                </div>
+
+                <div>
+                    ${i.texto}
+                </div>
+
+                <div class="tags">
+                    ${i.tags}
+                </div>
+
+                <div style="margin-top:10px">
+                    <button class="excluir"
+                            onclick="excluirIdeia(${i.id})">
+                        Excluir
+                    </button>
+                </div>
+
+            </div>
+        `;
+    });
+}
+
+function abrirPesquisa() {
+
+    const texto =
+        document.getElementById("textoIdeia").value.trim();
+
+    if (texto) {
+        const url =
+            "https://www.bing.com/search?q=" +
+            encodeURIComponent(texto);
+
+        window.open(url, "_blank");
+    } else {
+        window.open("https://www.bing.com", "_blank");
+    }
+}
+
+function exportarDados() {
+
+    const blob = new Blob(
+        [JSON.stringify(ideias, null, 2)],
+        { type: "application/json" }
+    );
+
+    const link = document.createElement("a");
+
+    link.href = URL.createObjectURL(blob);
+
+    link.download = "backup_ideias.json";
+
+    link.click();
+}
+
+function importarDados(event) {
+
+    const arquivo = event.target.files[0];
+
+    if (!arquivo)
+        return;
+
+    const leitor = new FileReader();
+
+    leitor.onload = function(e) {
+
+        try {
+
+            ideias = JSON.parse(e.target.result);
+
+            salvarLocal();
+            renderizar();
+
+            alert("Backup importado com sucesso.");
+
+        } catch {
+
+            alert("Arquivo inválido.");
+        }
+    };
+
+    leitor.readAsText(arquivo);
+}
+
+renderizar();
+
+</script>
+
+</body>
+</html>
